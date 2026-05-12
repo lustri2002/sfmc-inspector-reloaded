@@ -29,10 +29,7 @@
       "matches": [
         "*://*.exacttarget.com/*",
         "*://*.marketingcloud.com/*",
-        "*://*.salesforce-marketingcloud.com/*",
-        "*://*.marketingcloudapps.com/*",
-        "*://*.salesforce.com/*",
-        "*://*.force.com/*"
+        "*://*.salesforce-marketingcloud.com/*"
       ],
       "js": ["content/detector.js"],
       "run_at": "document_start",
@@ -50,8 +47,6 @@
     "*://*.marketingcloudapis.com/*",
     "*://*.marketingcloud.com/*",
     "*://*.salesforce-marketingcloud.com/*",
-    "*://*.marketingcloudapps.com/*",
-    "*://*.salesforce.com/*",
-    "*://*.force.com/*"
+    "*://*.marketingcloudapps.com/*"
   ]
 }
