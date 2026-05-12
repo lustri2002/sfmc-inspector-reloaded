@@ -28,8 +28,19 @@
       filtered:  []
     },
     // Cached full automation list for DE→Automation mapping
-    allAutomations: null
+    allAutomations: null,
+    relations: {
+      automationMatchesByDe: {},
+      journeyMatchesByDe:    {},
+      automationDetailsById: {},
+      querySqlById:          {},
+      eventDefinitions:      null,
+      journeysRaw:           null
+    }
   };
+
+  var POPUP_CACHE_KEY     = "sfmcInspectorPopupCache";
+  var POPUP_CACHE_VERSION = 1;
 
   // ─── DOM refs ────────────────────────────────────────────────────────────────
 
@@ -123,6 +134,147 @@
     return escHtml(text).replace(re, '<span class="hl">$1</span>');
   }
 
+  function emptyRelations() {
+    return {
+      automationMatchesByDe: {},
+      journeyMatchesByDe:    {},
+      automationDetailsById: {},
+      querySqlById:          {},
+      eventDefinitions:      null,
+      journeysRaw:           null
+    };
+  }
+
+  function getSessionCacheKey(session) {
+    if (!session || !session.isValid) return "";
+    return [
+      session.hostname || "",
+      session.businessUnitId || "",
+      session.stackKey || ""
+    ].join("|");
+  }
+
+  function readPopupCache() {
+    return new Promise(function (resolve) {
+      if (!chrome.storage || !chrome.storage.session) {
+        resolve(null);
+        return;
+      }
+      chrome.storage.session.get(POPUP_CACHE_KEY, function (result) {
+        resolve(result && result[POPUP_CACHE_KEY] ? result[POPUP_CACHE_KEY] : null);
+      });
+    });
+  }
+
+  function getPersistableRelations() {
+    return {
+      automationMatchesByDe: state.relations.automationMatchesByDe,
+      journeyMatchesByDe:    state.relations.journeyMatchesByDe,
+      // Full automation details can become large; keep them in popup memory only.
+      automationDetailsById: {},
+      querySqlById:          state.relations.querySqlById,
+      eventDefinitions:      state.relations.eventDefinitions,
+      journeysRaw:           state.relations.journeysRaw
+    };
+  }
+
+  function savePopupCache() {
+    if (!state.session || !state.session.isValid || !chrome.storage || !chrome.storage.session) return;
+
+    var payload = {};
+    payload[POPUP_CACHE_KEY] = {
+      version:        POPUP_CACHE_VERSION,
+      sessionKey:     getSessionCacheKey(state.session),
+      updatedAt:      Date.now(),
+      de:             { items: state.de.items, loaded: state.de.loaded },
+      automations:    { items: state.automations.items, loaded: state.automations.loaded },
+      journeys:       { items: state.journeys.items, loaded: state.journeys.loaded },
+      allAutomations: state.allAutomations,
+      relations:      getPersistableRelations()
+    };
+
+    chrome.storage.session.set(payload, function () {
+      if (chrome.runtime.lastError) {
+        console.warn("[SFMC Inspector Popup] Could not save session cache:", chrome.runtime.lastError.message);
+      }
+    });
+  }
+
+  function clearPopupCache() {
+    if (!chrome.storage || !chrome.storage.session) return Promise.resolve();
+    return new Promise(function (resolve) {
+      chrome.storage.session.remove(POPUP_CACHE_KEY, resolve);
+    });
+  }
+
+  function setLoadedButtonLabels() {
+    els.btnLoadDe.textContent       = state.de.loaded ? "Reload" : "Load";
+    els.btnLoadAuto.textContent     = state.automations.loaded ? "Reload" : "Load";
+    els.btnLoadJourneys.textContent = state.journeys.loaded ? "Reload" : "Load";
+  }
+
+  function resetLoadedData() {
+    state.de.items = [];
+    state.de.loaded = false;
+    state.automations.items = [];
+    state.automations.loaded = false;
+    state.journeys.items = [];
+    state.journeys.loaded = false;
+    state.allAutomations = null;
+    state.relations = emptyRelations();
+
+    els.deList.innerHTML = "";
+    els.autoList.innerHTML = "";
+    els.journeyList.innerHTML = "";
+    els.deCount.textContent = "—";
+    els.autoCount.textContent = "—";
+    els.journeyCount.textContent = "—";
+    els.deDetail.classList.add("hidden");
+    els.autoDetail.classList.add("hidden");
+    els.deList.classList.remove("hidden");
+    els.autoList.classList.remove("hidden");
+    document.querySelector(".panel-toolbar").classList.remove("hidden");
+    setLoadedButtonLabels();
+  }
+
+  function restoreCachedState(session) {
+    return readPopupCache().then(function (cache) {
+      if (!cache ||
+          cache.version !== POPUP_CACHE_VERSION ||
+          cache.sessionKey !== getSessionCacheKey(session)) {
+        setLoadedButtonLabels();
+        return;
+      }
+
+      if (cache.de && cache.de.loaded) {
+        state.de.items = Array.isArray(cache.de.items) ? cache.de.items : [];
+        state.de.loaded = true;
+        els.deCount.textContent = state.de.items.length + " DE" + (state.de.items.length !== 1 ? "s" : "");
+        renderDeList(els.globalSearch.value.trim());
+      }
+
+      if (cache.automations && cache.automations.loaded) {
+        state.automations.items = Array.isArray(cache.automations.items) ? cache.automations.items : [];
+        state.automations.loaded = true;
+        els.autoCount.textContent = state.automations.items.length + " automations";
+        renderAutoList(els.globalSearch.value.trim());
+      }
+
+      if (cache.journeys && cache.journeys.loaded) {
+        state.journeys.items = Array.isArray(cache.journeys.items) ? cache.journeys.items : [];
+        state.journeys.loaded = true;
+        els.journeyCount.textContent = state.journeys.items.length + " journeys";
+        renderJourneyList(els.globalSearch.value.trim());
+      }
+
+      if (Object.prototype.hasOwnProperty.call(cache, "allAutomations")) {
+        state.allAutomations = cache.allAutomations;
+      }
+      state.relations = Object.assign(emptyRelations(), cache.relations || {});
+      setLoadedButtonLabels();
+    });
+  }
+
   // ─── Session ─────────────────────────────────────────────────────────────────
 
   function updateSessionUI(session) {
@@ -137,6 +289,7 @@
       els.sessionStack.textContent = session.stackKey || "—";
       els.noSession.classList.add("hidden");
       els.mainView.classList.remove("hidden");
+      restoreCachedState(session);
     } else {
       // Not detected
       els.sessionBadge.className  = "badge badge--error";
@@ -144,6 +297,7 @@
       els.sessionBar.classList.add("hidden");
       els.noSession.classList.remove("hidden");
       els.mainView.classList.add("hidden");
+      resetLoadedData();
     }
   }
 
@@ -290,6 +444,8 @@
       state.de.items  = items;
       state.de.loaded = true;
       els.deCount.textContent = items.length + " DE" + (items.length !== 1 ? "s" : "");
+      setLoadedButtonLabels();
+      savePopupCache();
       if (items.length === 0) {
         els.deList.innerHTML = '<div class="no-results">No Data Extensions found in this Business Unit.</div>';
         return;
@@ -427,17 +583,56 @@
       var items = data.entry || data.items || data.automations || [];
       if (!Array.isArray(items)) items = [];
       state.allAutomations = items;
+      savePopupCache();
       return items;
     });
   }
 
+  function getRelationKey(deKey, deName) {
+    return ((deKey || "") + "||" + (deName || "")).toLowerCase();
+  }
+
+  function getAutomationDetailCached(auto) {
+    var id = auto && (auto.id || auto.automationId);
+    if (!id) return Promise.resolve(null);
+    if (state.relations.automationDetailsById[id]) {
+      return Promise.resolve(state.relations.automationDetailsById[id]);
+    }
+    return SfmcApi.getAutomationById(id).then(function (detail) {
+      state.relations.automationDetailsById[id] = detail;
+      return detail;
+    });
+  }
+
+  function getQueryActivitySqlCached(activityObjectId) {
+    if (!activityObjectId) return Promise.resolve("");
+    if (Object.prototype.hasOwnProperty.call(state.relations.querySqlById, activityObjectId)) {
+      return Promise.resolve(state.relations.querySqlById[activityObjectId]);
+    }
+    return SfmcApi.getQueryActivityById(activityObjectId)
+      .then(function (q) {
+        var sql = q.queryText || q.query || q.queryDefinition && q.queryDefinition.queryText || "";
+        state.relations.querySqlById[activityObjectId] = sql;
+        return sql;
+      })
+      .catch(function () {
+        state.relations.querySqlById[activityObjectId] = "";
+        return "";
+      });
+  }
+
   function findAutomationsForDe(deKey, deName) {
+    var cacheKey = getRelationKey(deKey, deName);
+    if (state.relations.automationMatchesByDe[cacheKey]) {
+      return Promise.resolve(state.relations.automationMatchesByDe[cacheKey]);
+    }
+
     return getAllAutomations().then(function (automations) {
       var matches = [];
       var detailPromises = [];
 
       automations.forEach(function (auto) {
-        var p = SfmcApi.getAutomationById(auto.id || auto.automationId).then(function (detail) {
+        var p = getAutomationDetailCached(auto).then(function (detail) {
           if (!detail || !detail.steps) return;
 
           detail.steps.forEach(function (step) {
@@ -471,17 +666,25 @@
         detailPromises.push(p);
       });
 
-      return Promise.all(detailPromises).then(function () { return matches; });
+      return Promise.all(detailPromises).then(function () {
+        state.relations.automationMatchesByDe[cacheKey] = matches;
+        savePopupCache();
+        return matches;
+      });
     });
   }
 
   // ─── Journey → DE mapping ────────────────────────────────────────────────────
 
   function findJourneysForDe(deKey, deName) {
+    var cacheKey = getRelationKey(deKey, deName);
+    if (state.relations.journeyMatchesByDe[cacheKey]) {
+      return Promise.resolve(state.relations.journeyMatchesByDe[cacheKey]);
+    }
+
     // Journey entry sources are stored in Event Definitions, not in the Journey itself
     // eventDefinition.dataExtensionId links a DE to one or more Journeys
-    return SfmcApi.getEventDefinitions().then(function (data) {
-      var eventDefs = data.items || [];
+    return getEventDefinitionsCached().then(function (eventDefs) {
       var matches   = [];
       var deIdLow   = (deKey  || "").toLowerCase();
       var deNameLow = (deName || "").toLowerCase();
@@ -494,12 +697,14 @@
                (deNameLow && evDeName === deNameLow);
       });
 
-      if (matchingEvents.length === 0) return matches;
+      if (matchingEvents.length === 0) {
+        state.relations.journeyMatchesByDe[cacheKey] = matches;
+        savePopupCache();
+        return matches;
+      }
 
       // For each matching event def, find the journeys that use it
-      return SfmcApi.getJourneys().then(function (jData) {
-        var journeys = jData.items || [];
-
+      return getJourneysRawCached().then(function (journeys) {
         matchingEvents.forEach(function (ev) {
           // Find journeys linked to this event definition
           var linkedJourneys = journeys.filter(function (j) {
@@ -530,9 +735,36 @@
           }
         });
 
+        state.relations.journeyMatchesByDe[cacheKey] = matches;
+        savePopupCache();
         return matches;
       });
     }).catch(function () { return []; });
+  }
+
+  function getEventDefinitionsCached() {
+    if (state.relations.eventDefinitions) {
+      return Promise.resolve(state.relations.eventDefinitions);
+    }
+    return SfmcApi.getEventDefinitions().then(function (data) {
+      var eventDefs = data.items || [];
+      state.relations.eventDefinitions = eventDefs;
+      savePopupCache();
+      return eventDefs;
+    });
+  }
+
+  function getJourneysRawCached() {
+    if (state.relations.journeysRaw) {
+      return Promise.resolve(state.relations.journeysRaw);
+    }
+    return SfmcApi.getJourneys().then(function (data) {
+      var journeys = data.items || data.interactions || data || [];
+      if (!Array.isArray(journeys)) journeys = [];
+      state.relations.journeysRaw = journeys;
+      savePopupCache();
+      return journeys;
+    });
   }
 
   // ─── AUTOMATIONS TAB ─────────────────────────────────────────────────────────
@@ -593,8 +825,12 @@
       state.automations.items  = items;
       state.automations.loaded = true;
       state.allAutomations = raw;
+      state.relations.automationMatchesByDe = {};
+      state.relations.automationDetailsById = {};
       els.autoCount.textContent = items.length + " automations";
+      setLoadedButtonLabels();
       renderAutoList(els.globalSearch.value.trim());
+      savePopupCache();
     }).catch(function (err) {
       els.autoLoading.classList.add("hidden");
       els.autoList.innerHTML = '<div class="no-results" style="color:var(--red)">' + escHtml(err.message) + "</div>";
@@ -618,9 +854,9 @@
         '<div class="loader-wrap"><div class="spinner"></div><span>Loading activities…</span></div>' +
       "</div>";
 
-    SfmcApi.getAutomationById(auto.id).then(function (detail) {
+    getAutomationDetailCached(auto).then(function (detail) {
       var activities = [];
-      if (detail.steps) {
+      if (detail && detail.steps) {
         detail.steps.forEach(function (step) {
           if (step.activities) step.activities.forEach(function (a) { activities.push(a); });
         });
@@ -637,14 +873,14 @@
       // Fetch SQL for all query activities in parallel (objectTypeId 300 = Query)
       var sqlPromises = activities.map(function (act) {
         if (act.objectTypeId === 300 && act.activityObjectId) {
-          return SfmcApi.getQueryActivityById(act.activityObjectId)
-            .then(function (q) { return { id: act.activityObjectId, sql: q.queryText || q.query || q.queryDefinition && q.queryDefinition.queryText || "" }; })
-            .catch(function () { return { id: act.activityObjectId, sql: "" }; });
+          return getQueryActivitySqlCached(act.activityObjectId)
+            .then(function (sql) { return { id: act.activityObjectId, sql: sql }; });
         }
         return Promise.resolve({ id: act.activityObjectId || "", sql: "" });
       });
 
       Promise.all(sqlPromises).then(function (sqlResults) {
+        savePopupCache();
         var sqlMap = {};
         sqlResults.forEach(function (r) { if (r.id) sqlMap[r.id] = r.sql; });
 
@@ -758,8 +994,12 @@
       });
       state.journeys.items  = items;
       state.journeys.loaded = true;
+      state.relations.journeysRaw = data.items || data.interactions || data || [];
+      state.relations.journeyMatchesByDe = {};
       els.journeyCount.textContent = items.length + " journeys";
+      setLoadedButtonLabels();
       renderJourneyList(els.globalSearch.value.trim());
+      savePopupCache();
     }).catch(function (err) {
       els.journeyLoading.classList.add("hidden");
       els.journeyList.innerHTML = '<div class="no-results" style="color:var(--red)">' + escHtml(err.message) + "</div>";
@@ -842,8 +1082,8 @@
   // ─── Refresh ─────────────────────────────────────────────────────────────────
 
   els.btnRefresh.addEventListener("click", function () {
-    state.allAutomations = null;
-    loadSession();
+    resetLoadedData();
+    clearPopupCache().then(loadSession);
   });
 
   // ─── Init ────────────────────────────────────────────────────────────────────
