@@ -227,9 +227,11 @@
     var id = item.id || item.objectId || item.dataExtensionId ||
       item.automationId || item.activityObjectId || item.queryActivityId ||
       item.queryDefinitionId || item.interactionId || item.definitionId || "";
+    var version = item.version || item.versionNumber || "";
 
     return ' data-native-type="' + escHtml(type || "") + '"' +
-      ' data-native-id="' + escHtml(id) + '"';
+      ' data-native-id="' + escHtml(id) + '"' +
+      ' data-native-version="' + escHtml(version) + '"';
   }
 
   function nativeLinkHtml(labelHtml, type, item, className) {
@@ -504,17 +506,19 @@
     var url = link.getAttribute("href");
     var nativeType = link.dataset.nativeType || "";
     var nativeId = link.dataset.nativeId || "";
+    var nativeVersion = link.dataset.nativeVersion || "";
     if (!url) {
       window.alert("Open in SFMC non disponibile per questo oggetto.");
       return;
     }
 
-    if (nativeType === "dataExtension" && nativeId) {
+    if (nativeType && nativeId) {
       chrome.runtime.sendMessage({
         type: "OPEN_NATIVE_OBJECT",
         payload: {
           objectType: nativeType,
           objectId: nativeId,
+          version: nativeVersion,
           fallbackUrl: url
         }
       }, function (resp) {
@@ -631,7 +635,10 @@
     els.deCount.textContent = "Loading…";
     setLoadedButtonLabels();
 
-    SfmcApi.getDataExtensions().then(function (data) {
+    SfmcApi.getDataExtensions(function (done, total, uniqueCount) {
+      els.deCount.textContent = done + " / " + total + " prefixes" +
+        (uniqueCount ? " · " + uniqueCount + " DEs" : "");
+    }).then(function (data) {
       state.de.loading = false;
       els.deLoading.classList.add("hidden");
       var raw = data.items || [];
@@ -830,6 +837,11 @@
       return Promise.resolve(state.allAutomations);
     }
     return loadAutomationPages(1, 500, [], null, function (loaded, total) {
+      if (state.automations.loading && els.autoCount) {
+        els.autoCount.textContent = total
+          ? loaded + " / " + total + " automations"
+          : "Loading " + loaded + "...";
+      }
       if (state.queries.scanning && els.queryLoadingLabel) {
         els.queryLoadingLabel.textContent = total
           ? "Loading automations " + loaded + " / " + total + "..."
@@ -986,6 +998,7 @@
             linkedJourneys.forEach(function (j) {
               matches.push({
                 id:        j.id || "",
+                version:   j.version || j.versionNumber || 1,
                 url:       j.url || j.link || j.nativeUrl || "",
                 name:      j.name || "—",
                 status:    j.status || "—",
@@ -1030,9 +1043,8 @@
     if (state.relations.journeysRaw) {
       return Promise.resolve(state.relations.journeysRaw);
     }
-    return SfmcApi.getJourneys().then(function (data) {
-      var journeys = data.items || data.interactions || data || [];
-      if (!Array.isArray(journeys)) journeys = [];
+    return loadJourneyPages(1, 100, [], null, null).then(function (result) {
+      var journeys = result.items || [];
       state.relations.journeysRaw = journeys;
       savePopupCache();
       return journeys;
@@ -1678,6 +1690,32 @@
     }).join("");
   }
 
+  function getJourneyItems(data) {
+    var items = data && (data.items || data.interactions || data.entry || data);
+    return Array.isArray(items) ? items : [];
+  }
+
+  function getJourneyTotal(data) {
+    if (!data) return null;
+    return data.count || data.totalCount || data.totalResults || data.total || null;
+  }
+
+  function loadJourneyPages(page, pageSize, acc, knownTotal, onProgress) {
+    return SfmcApi.getJourneys(page, pageSize).then(function (data) {
+      var pageItems = getJourneyItems(data);
+      var total = getJourneyTotal(data) || knownTotal;
+      acc = acc.concat(pageItems);
+
+      if (onProgress) onProgress(acc.length, total);
+
+      if ((total && acc.length >= total) || pageItems.length < pageSize || page >= 200) {
+        return { items: acc, total: total || acc.length };
+      }
+
+      return loadJourneyPages(page + 1, pageSize, acc, total, onProgress);
+    });
+  }
+
   function loadJourneys() {
     if (!state.session || !state.session.isValid || state.journeys.loading) return;
     state.journeys.loading = true;
@@ -1685,22 +1723,27 @@
     els.journeyList.innerHTML = "";
     setLoadedButtonLabels();
 
-    SfmcApi.getJourneys(1, 100).then(function (data) {
+    loadJourneyPages(1, 100, [], null, function (loaded, total) {
+      els.journeyCount.textContent = total
+        ? loaded + " / " + total + " journeys"
+        : "Loading " + loaded + "...";
+    }).then(function (result) {
       state.journeys.loading = false;
       els.journeyLoading.classList.add("hidden");
-      var items = (data.items || data.interactions || data || []).map(function (j) {
+      var rawJourneys = result.items || [];
+      var items = rawJourneys.map(function (j) {
         return {
           id:            j.id || "",
           url:           j.url || j.link || j.nativeUrl || "",
           name:          j.name || "—",
           status:        j.status || "—",
-          version:       j.version || 1,
+          version:       j.version || j.versionNumber || 1,
           activityCount: j.activities ? j.activities.length : 0
         };
       });
       state.journeys.items  = items;
       state.journeys.loaded = true;
-      state.relations.journeysRaw = data.items || data.interactions || data || [];
+      state.relations.journeysRaw = rawJourneys;
       state.relations.journeyMatchesByDe = {};
       els.journeyCount.textContent = items.length + " journeys";
       setLoadedButtonLabels();

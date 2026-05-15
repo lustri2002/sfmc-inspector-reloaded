@@ -30,15 +30,29 @@ var SfmcApi = (function () {
 
   // ── Data Extensions ──────────────────────────────────────────────────────────
 
-  function getDataExtensions() {
+  function getDataExtensions(onProgress) {
     // SFMC requires a $search prefix — we query all alphanumeric prefixes in parallel
     // and deduplicate by customerKey
     var chars = "abcdefghijklmnopqrstuvwxyz0123456789-_ ".split("");
     var base = "/data-internal/v1/customobjects?retrievalType=1&includeFullPath=true&$pageSize=500&$page=1&$search=";
+    var completed = 0;
+    var seenProgress = {};
+    var uniqueCount = 0;
     var promises = chars.map(function(c) {
       return call(base + encodeURIComponent(c) + "%25").then(function(d) {
         return d.items || [];
-      }).catch(function() { return []; });
+      }).catch(function() { return []; }).then(function(items) {
+        completed++;
+        items.forEach(function(de) {
+          var key = de.customerKey || de.key || de.objectId || de.name;
+          if (key && !seenProgress[key]) {
+            seenProgress[key] = true;
+            uniqueCount++;
+          }
+        });
+        if (onProgress) onProgress(completed, chars.length, uniqueCount);
+        return items;
+      });
     });
     return Promise.all(promises).then(function(results) {
       var seen = {};
@@ -97,8 +111,9 @@ var SfmcApi = (function () {
 
   // ── Journeys ──────────────────────────────────────────────────────────────────
 
-  function getJourneys() {
-    return call("/interaction/v1/interactions");
+  function getJourneys(page, pageSize) {
+    var p = page || 1, ps = pageSize || 100;
+    return call("/interaction/v1/interactions?$page=" + p + "&$pageSize=" + ps);
   }
 
   function getJourneyById(id) {

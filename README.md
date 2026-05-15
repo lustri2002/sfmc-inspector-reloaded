@@ -2,7 +2,7 @@
 
 > The definitive developer toolkit for Salesforce Marketing Cloud Engagement.
 
-![Version](https://img.shields.io/badge/version-1.1.2-blue)
+![Version](https://img.shields.io/badge/version-1.1.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Manifest](https://img.shields.io/badge/manifest-v3-orange)
 
@@ -20,30 +20,24 @@ All credit for the original idea, foundation, and early implementation goes to t
 
 SFMC Inspector runs inside your browser while you're logged into Salesforce Marketing Cloud. It reads your existing session — no OAuth setup, no credentials to enter — and gives you superpowers the native UI doesn't have.
 
-### Features (v1.1.2)
+### Features (v1.1.3)
 
 | Feature | Description |
 |---|---|
 | **Session Detection** | Automatically detects your SFMC session from any open SFMC tab |
-| **Data Extension Explorer** | Browse all DEs with quick search |
-| **DE → Automation Map** | For any DE, see which Query Activities write to it and their SQL |
-| **DE → Journey Map** | See which Journeys reference a DE as entry source or activity |
+| **Data Extension Explorer** | Browse all DEs with quick search, automation write mapping, and Journey entry-source references |
 | **Automation Monitor** | Browse automations with status, schedule, and inline SQL preview |
-| **Query Activity Index** | Index Query Activities, hydrate SQL text, and correlate queries with automations |
-| **SQL Search Workspace** | Open a dedicated full-page SQL Search tool for searching SQL, target DEs, Query Activity names, and automation usage |
-| **SQL Linter** | 10-rule static analysis for SFMC Query Activity SQL |
-| **AMPScript Linter** | 10-rule static analysis for AMPScript V1 blocks |
+| **Full Journey Loading** | Loads all Journey Builder pages instead of stopping at the first page of results |
+| **SQL Search & Query Index** | Index Query Activities, hydrate SQL text, correlate automation usage, and search SQL, target DEs, query names, and automation metadata |
+| **SQL & AMPScript Linters** | 10-rule static analysis for SFMC Query Activity SQL and AMPScript V1 blocks |
 | **Global Search** | ⌘K search across DEs, Automations, Journeys simultaneously |
-| **View in SFMC** | Click native object names in Inspector to jump back into Salesforce Marketing Cloud |
-| **Native DE Navigation** | Attempts to open Data Extensions inside the authenticated Contact Builder iframe using the DE ObjectID |
-| **Native Automation Navigation** | Opens Automation Studio on the selected automation when a direct shell route is available |
-| **Native Query Navigation** | Opens Query Activity modals from automation details and SQL search results |
-| **Native Journey Navigation** | Opens Journey Builder on the selected Journey when journey IDs are available, otherwise falls back to Journey Builder |
+| **View in SFMC** | Click native object names to open Data Extensions, Automations, Query Activities, and Journeys in the native SFMC UI when a route is available |
+| **Progressive Loading Counters** | Shows live load progress for Data Extensions, Automations, and Journeys while metadata is being fetched |
 | **Refreshed Popup UI** | Updated light Salesforce-inspired layout, detail panels, toolbar controls, loading states, and native-open affordances |
 
 ### Native navigation notes
 
-SFMC apps are often rendered inside nested iframes, so not every object has a stable URL visible in the browser address bar. Inspector handles this in two ways:
+SFMC apps are often rendered inside nested iframes, so not every object has a stable URL visible in the browser address bar. Inspector handles this with object-specific navigation:
 
 - Automations, Query Activities, and Journeys use Marketing Cloud shell routes when a stable route is available.
 - Data Extensions use a Contact Builder-specific flow: Inspector focuses the existing SFMC tab, opens Contact Builder, injects into available frames, detects the authenticated `contactsmeta` iframe, and navigates that iframe to the selected Data Extension properties route.
@@ -137,18 +131,23 @@ sfmc-inspector/
 
 ---
 
-## Roadmap
+## Completed
 
 - [x] Icons (v1.1.2)
 - [x] Dedicated SQL Search workspace
 - [x] Clickable native object navigation
+- [x] Full Journey pagination
+- [x] Progressive loading counters for DEs, Automations, and Journeys
+- [x] Chrome Web Store listing (submitted)
+
+## Roadmap
+
 - [ ] Harden Contact Builder iframe navigation across more SFMC stacks
 - [ ] Journey dependency map (visual tree)
 - [ ] DE Health Dashboard (NULL columns, orphaned DEs)
 - [ ] Broken link detector for emails
 - [ ] Export metadata to JSON/CSV
 - [ ] Firefox support
-- [x] Chrome Web Store listing (submitted)
 
 ---
 

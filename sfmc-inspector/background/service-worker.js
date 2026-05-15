@@ -166,7 +166,46 @@ async function focusSfmcTab(tab, url) {
   return updatedTab || tab;
 }
 
-async function navigateContactBuilderFrame(tabId, objectId) {
+function getNativeNavigationConfig(payload) {
+  var host = session.hostname || getHostFromUrl(payload.fallbackUrl);
+  var fallbackUrl = payload.fallbackUrl || "";
+  var objectId = payload.objectId || "";
+  var version = payload.version || 1;
+
+  if (payload.objectType === "dataExtension") {
+    return {
+      shellUrl: fallbackUrl || ("https://" + host + "/cloud/#app/Contact%20Builder"),
+      frameNeedles: ["contactsmeta/admin.html"],
+      targetPath: "/contactsmeta/admin.html#admin/data-extension/" + encodeURIComponent(objectId) + "/properties/",
+      notFoundMessage: "Ho aperto Contact Builder, ma non ho trovato l'iframe contactsmeta da pilotare."
+    };
+  }
+
+  if (payload.objectType === "automation") {
+    return {
+      shellUrl: fallbackUrl || ("https://" + host + "/cloud/#app/Automation%20Studio/AutomationStudioFuel3/"),
+      usesFrameNavigation: false
+    };
+  }
+
+  if (payload.objectType === "query") {
+    return {
+      shellUrl: fallbackUrl || ("https://" + host + "/cloud/#app/Automation%20Studio/AutomationStudioFuel3/"),
+      usesFrameNavigation: false
+    };
+  }
+
+  if (payload.objectType === "journey") {
+    return {
+      shellUrl: fallbackUrl || ("https://" + host + "/cloud/#app/Journey%20Builder/"),
+      usesFrameNavigation: false
+    };
+  }
+
+  throw new Error("Open in SFMC non disponibile per questo oggetto.");
+}
+
+async function navigateNativeFrame(tabId, config) {
   var lastFrames = [];
 
   for (var attempt = 0; attempt < 24; attempt++) {
@@ -174,17 +213,20 @@ async function navigateContactBuilderFrame(tabId, objectId) {
     try {
       results = await chrome.scripting.executeScript({
         target: { tabId: tabId, allFrames: true },
-        func: function(dataExtensionObjectId) {
+        func: function(frameNeedles, targetPath) {
+          function frameMatchesLocal(href, needles) {
+            var lower = String(href || "").toLowerCase();
+            return needles.some(function(needle) {
+              return lower.indexOf(String(needle).toLowerCase()) !== -1;
+            });
+          }
+
           var href = window.location.href;
-          var isContactBuilderFrame = href.indexOf("contactsmeta/admin.html") !== -1;
-          if (!isContactBuilderFrame) {
+          if (!frameMatchesLocal(href, frameNeedles)) {
             return { matched: false, href: href };
           }
 
-          var target = window.location.origin +
-            "/contactsmeta/admin.html#admin/data-extension/" +
-            encodeURIComponent(dataExtensionObjectId) +
-            "/properties/";
+          var target = window.location.origin + targetPath;
 
           if (window.location.href !== target) {
             window.location.assign(target);
@@ -192,7 +234,7 @@ async function navigateContactBuilderFrame(tabId, objectId) {
 
           return { matched: true, href: href, target: target };
         },
-        args: [objectId]
+        args: [config.frameNeedles, config.targetPath]
       });
     } catch(e) {
       results = [];
@@ -210,26 +252,25 @@ async function navigateContactBuilderFrame(tabId, objectId) {
     await wait(500);
   }
 
-  throw new Error("Ho aperto Contact Builder, ma non ho trovato l'iframe contactsmeta da pilotare.");
+  throw new Error(config.notFoundMessage);
 }
 
 async function openNativeObject(payload) {
   payload = payload || {};
-  if (payload.objectType !== "dataExtension") {
-    throw new Error("Open in SFMC non disponibile per questo oggetto.");
-  }
   if (!payload.objectId) {
-    throw new Error("ObjectID della Data Extension non disponibile.");
+    throw new Error("Object ID non disponibile per questo oggetto.");
   }
 
+  var config = getNativeNavigationConfig(payload);
   var tab = await findSfmcTab(payload.fallbackUrl);
-  var contactBuilderUrl = payload.fallbackUrl ||
-    ("https://" + session.hostname + "/cloud/#app/Contact%20Builder");
+  var updatedTab = await focusSfmcTab(tab, config.shellUrl);
 
-  var updatedTab = await focusSfmcTab(tab, contactBuilderUrl);
+  if (!config.usesFrameNavigation) {
+    return { matched: true, href: updatedTab.url || config.shellUrl, target: config.shellUrl };
+  }
+
   await wait(1000);
-
-  return navigateContactBuilderFrame(updatedTab.id || tab.id, payload.objectId);
+  return navigateNativeFrame(updatedTab.id || tab.id, config);
 }
 
 // ── Session status ────────────────────────────────────────────────────────────
