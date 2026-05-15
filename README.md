@@ -1,6 +1,6 @@
 # SFMC Inspector
 
-> The definitive developer toolkit for Salesforce Marketing Cloud Engagement.
+> A lightweight Chrome extension for exploring Salesforce Marketing Cloud metadata without leaving your logged-in SFMC session.
 
 ![Version](https://img.shields.io/badge/version-1.1.3-blue)
 ![License](https://img.shields.io/badge/license-MIT-green)
@@ -8,160 +8,210 @@
 
 ---
 
-## Fork notice
+## Credits
 
-This project is a fork of the original [`TokyoYugen/sfmc-inspector`](https://github.com/TokyoYugen/sfmc-inspector) project.
+This repository is a fork of the original [`TokyoYugen/sfmc-inspector`](https://github.com/TokyoYugen/sfmc-inspector) project.
 
-All credit for the original idea, foundation, and early implementation goes to the original author. This fork builds on that work with additional navigation, search, linting, and UI improvements for Salesforce Marketing Cloud developers.
-
----
-
-## What it does
-
-SFMC Inspector runs inside your browser while you're logged into Salesforce Marketing Cloud. It reads your existing session — no OAuth setup, no credentials to enter — and gives you superpowers the native UI doesn't have.
-
-### Features (v1.1.3)
-
-| Feature | Description |
-|---|---|
-| **Session Detection** | Automatically detects your SFMC session from any open SFMC tab |
-| **Data Extension Explorer** | Browse all DEs with quick search, automation write mapping, and Journey entry-source references |
-| **Automation Monitor** | Browse automations with status, schedule, and inline SQL preview |
-| **Full Journey Loading** | Loads all Journey Builder pages instead of stopping at the first page of results |
-| **SQL Search & Query Index** | Index Query Activities, hydrate SQL text, correlate automation usage, and search SQL, target DEs, query names, and automation metadata |
-| **SQL & AMPScript Linters** | 10-rule static analysis for SFMC Query Activity SQL and AMPScript V1 blocks |
-| **Global Search** | ⌘K search across DEs, Automations, Journeys simultaneously |
-| **View in SFMC** | Click native object names to open Data Extensions, Automations, Query Activities, and Journeys in the native SFMC UI when a route is available |
-| **Progressive Loading Counters** | Shows live load progress for Data Extensions, Automations, and Journeys while metadata is being fetched |
-| **Refreshed Popup UI** | Updated light Salesforce-inspired layout, detail panels, toolbar controls, loading states, and native-open affordances |
-
-### Native navigation notes
-
-SFMC apps are often rendered inside nested iframes, so not every object has a stable URL visible in the browser address bar. Inspector handles this with object-specific navigation:
-
-- Automations, Query Activities, and Journeys use Marketing Cloud shell routes when a stable route is available.
-- Data Extensions use a Contact Builder-specific flow: Inspector focuses the existing SFMC tab, opens Contact Builder, injects into available frames, detects the authenticated `contactsmeta` iframe, and navigates that iframe to the selected Data Extension properties route.
-
-If a direct object route cannot be built, Inspector opens the closest native SFMC section instead of sending you to a broken login page.
+Credit for the original idea, foundation, and early implementation belongs to the original author. This fork keeps that foundation and extends it with a more complete popup experience, SQL search, native SFMC navigation, progressive loading states, and additional metadata relationships.
 
 ---
 
-## How authentication works
+## Why This Exists
 
-SFMC Inspector uses the **same session your browser already has** when you're logged into SFMC. It executes authenticated API calls directly inside your active SFMC tab using Chrome's scripting API — the browser's existing session is used 
-automatically, without reading or storing cookies.
+Salesforce Marketing Cloud is powerful, but moving between Data Extensions, Automations, Query Activities, and Journeys can be slow when you are debugging dependencies or trying to understand how an account is wired together.
 
-- ✅ No OAuth setup required
-- ✅ No credentials stored
-- ✅ No data sent to third parties
-- ✅ Respects your SFMC permissions — you can only see what your user can access
-- ✅ Detects session expiry and prompts you to refresh
+SFMC Inspector sits in the browser toolbar and gives you a fast metadata layer over the SFMC UI:
 
----
+- find Data Extensions quickly
+- see which automations write to a DE
+- see which Journeys reference a DE as an entry source
+- search Query Activity SQL across the business unit
+- jump back into the native SFMC object when you need to edit or inspect it there
+- lint SQL and AMPScript snippets while you work
 
-## Installation (development)
-
-1. Clone this repository
-2. Open Chrome and navigate to `chrome://extensions/`
-3. Enable **Developer mode** (top right toggle)
-4. Click **Load unpacked**
-5. Select the `sfmc-inspector/` folder
-6. Open Salesforce Marketing Cloud in a tab
-7. Click the SFMC Inspector icon in your toolbar
+It does not ask for credentials, store OAuth secrets, or send metadata to third-party services.
 
 ---
 
-## Project structure
+## Current Features
 
-```
+### Metadata Explorer
+
+- Browse Data Extensions with quick search and folder path context.
+- Open DE details with sendable/testable flags, dates, customer key, and path.
+- Scan automations that write to a selected DE.
+- Scan Journey entry sources related to a selected DE.
+- Browse Automations with status, schedule, and activity details.
+- Browse all Journey pages, not just the first page returned by SFMC.
+
+### SQL Search
+
+- Dedicated full-page SQL Search workspace.
+- Index Query Activities and hydrate SQL text.
+- Search SQL, Query Activity names, target Data Extensions, automation names, and automation usage.
+- Show SQL snippets and match counts.
+- Correlate Query Activities back to the automations that use them.
+
+### View in SFMC
+
+Clickable object names open the closest native SFMC screen:
+
+- Data Extensions open through Contact Builder and then attempt to navigate the authenticated `contactsmeta` frame to the selected DE.
+- Automations open through the native Automation Studio shell route.
+- Query Activities open through the native Automation Studio activity modal route.
+- Journeys open through the native Journey Builder shell route with Journey ID and version.
+
+If a stable direct object route is not available, Inspector falls back to the relevant SFMC section instead of sending you to a broken login page.
+
+### Developer Helpers
+
+- Global popup search across loaded DEs, Automations, and Journeys.
+- Progressive loading counters for DE, Automation, and Journey metadata.
+- SQL linter for common SFMC Query Activity issues.
+- AMPScript linter for common V1-style AMPScript issues.
+- Refreshable session detection from any open SFMC tab.
+
+---
+
+## Authentication And Privacy
+
+SFMC Inspector uses the SFMC session that already exists in your browser.
+
+The extension detects an open Salesforce Marketing Cloud tab, then runs authenticated SFMC API calls from that tab context through Chrome extension APIs. This means:
+
+- no OAuth app setup
+- no password prompt
+- no credential storage
+- no external backend
+- no third-party telemetry
+- SFMC permissions are respected because all data comes from your current user session
+
+The extension stores only temporary session context and local UI/index cache in browser extension storage.
+
+---
+
+## Installation For Development
+
+1. Clone this repository.
+2. Open Chrome and go to `chrome://extensions/`.
+3. Enable **Developer mode**.
+4. Click **Load unpacked**.
+5. Select the inner `sfmc-inspector/` extension folder.
+6. Open Salesforce Marketing Cloud in another tab.
+7. Click the SFMC Inspector toolbar icon.
+
+---
+
+## Project Layout
+
+```text
 sfmc-inspector/
-├── manifest.json                 # Manifest V3
+├── manifest.json
 ├── background/
-│   └── service-worker.js         # Session management, API proxy
+│   └── service-worker.js         # Session detection, injected API proxy, native navigation
 ├── content/
-│   └── detector.js               # SFMC page detector, token extractor
+│   └── detector.js               # SFMC page detector and SSO/JWT context probe
 ├── panel/
-│   ├── popup.html                # Extension popup UI
-│   ├── popup.css                 # Popup styles and native navigation affordances
-│   └── popup.js                  # UI controller
+│   ├── popup.html                # Popup shell
+│   ├── popup.css                 # Popup UI styles
+│   └── popup.js                  # Popup controller, metadata views, relationships
 ├── sql-search/
-│   ├── sql-search.html           # Dedicated SQL Search workspace
-│   ├── sql-search.css            # SQL Search styles
-│   └── sql-search.js             # Query Activity indexing and SQL search UI
+│   ├── sql-search.html           # Dedicated SQL Search page
+│   ├── sql-search.css
+│   └── sql-search.js
 ├── shared/
-│   ├── sfmc-api.js               # REST API wrapper
-│   ├── sql-linter.js             # SQL static analysis (10 rules)
-│   └── ampscript-linter.js       # AMPScript static analysis (10 rules)
+│   ├── sfmc-api.js               # Shared SFMC API wrapper
+│   ├── sql-linter.js
+│   └── ampscript-linter.js
 └── assets/
-    └── icons/                    # Extension icons (to be added)
+    └── icons/
 ```
 
 ---
 
-## Linter rules
+## Native Navigation Notes
 
-### SQL (Query Activities)
+Marketing Cloud does not expose stable address-bar URLs for every object. Some apps are rendered inside nested iframes, and the visible URL may only show the outer shell route.
 
-| Rule | Severity | Description |
-|---|---|---|
-| SQL001 | 🔴 Error | SELECT * used |
-| SQL002 | 🟡 Warning | Missing NOLOCK on data views |
-| SQL003 | 🔴 Error | NULL comparison with = or != |
-| SQL004 | 🟡 Warning | No WHERE clause on high-volume data view |
-| SQL005 | 🟡 Warning | Implicit type coercion in JOIN |
-| SQL006 | 🔵 Info | DISTINCT on high-volume table |
-| SQL007 | 🟡 Warning | Subquery in WHERE instead of JOIN |
-| SQL009 | 🔵 Info | TOP without ORDER BY |
-| SQL010 | 🟡 Warning | GETDATE() without timezone context |
+Inspector handles this per object type:
 
-### AMPScript (Emails / CloudPages / Templates)
+- **Data Extensions**: opens Contact Builder, searches for the authenticated `contactsmeta` iframe, and navigates that frame to the DE properties route using ObjectID.
+- **Automations**: opens the native Automation Studio instance route.
+- **Query Activities**: opens the native Automation Studio activity modal route.
+- **Journeys**: opens the native Journey Builder route using Journey ID and version.
 
-| Rule | Severity | Description |
-|---|---|---|
-| AMP001 | 🔴 Error | Variable used without VAR declaration |
-| AMP002 | 🔴 Error | IF block without ENDIF |
-| AMP003 | 🔴 Error | FOR block without NEXT |
-| AMP004 | 🟡 Warning | Output without EncodeValue() |
-| AMP005 | 🟡 Warning | Hardcoded email address or ClientID |
-| AMP006 | 🔴 Error | LookupRows without null check |
-| AMP007 | 🟡 Warning | Lowercase AMPScript keywords |
-| AMP008 | 🔵 Info | TreatAsContent() usage detected |
-| AMP009 | 🟡 Warning | Data write without error handling |
-| AMP010 | 🔵 Info | V2 syntax detected |
+Contact Builder iframe navigation can vary across SFMC stacks, so this remains the most fragile native navigation path.
 
 ---
 
-## Completed
+## Linter Coverage
 
-- [x] Icons (v1.1.2)
-- [x] Dedicated SQL Search workspace
-- [x] Clickable native object navigation
-- [x] Full Journey pagination
-- [x] Progressive loading counters for DEs, Automations, and Journeys
-- [x] Chrome Web Store listing (submitted)
+### SQL
+
+| Rule | Severity | Description |
+|---|---|---|
+| SQL001 | Error | `SELECT *` used |
+| SQL002 | Warning | Missing `NOLOCK` on data views |
+| SQL003 | Error | `NULL` comparison with `=` or `!=` |
+| SQL004 | Warning | No `WHERE` clause on high-volume data view |
+| SQL005 | Warning | Possible implicit type coercion in join |
+| SQL006 | Info | `DISTINCT` on high-volume table |
+| SQL007 | Warning | Subquery in `WHERE` instead of join |
+| SQL009 | Info | `TOP` without `ORDER BY` |
+| SQL010 | Warning | `GETDATE()` without timezone context |
+
+### AMPScript
+
+| Rule | Severity | Description |
+|---|---|---|
+| AMP001 | Error | Variable used without `VAR` declaration |
+| AMP002 | Error | `IF` block without `ENDIF` |
+| AMP003 | Error | `FOR` block without `NEXT` |
+| AMP004 | Warning | Output without `EncodeValue()` |
+| AMP005 | Warning | Hardcoded email address or ClientID |
+| AMP006 | Error | `LookupRows` without null check |
+| AMP007 | Warning | Lowercase AMPScript keywords |
+| AMP008 | Info | `TreatAsContent()` usage detected |
+| AMP009 | Warning | Data write without error handling |
+| AMP010 | Info | V2 syntax detected |
+
+---
+
+## Recently Added
+
+- Native “View in SFMC” links for DEs, Automations, Query Activities, and Journeys.
+- Dedicated SQL Search workspace.
+- Query Activity indexing with automation usage mapping.
+- Full Journey pagination.
+- Progressive metadata loading counters.
+- Refreshed light popup UI.
+- Extension icons.
 
 ## Roadmap
 
-- [ ] Harden Contact Builder iframe navigation across more SFMC stacks
-- [ ] Journey dependency map (visual tree)
-- [ ] DE Health Dashboard (NULL columns, orphaned DEs)
-- [ ] Broken link detector for emails
-- [ ] Export metadata to JSON/CSV
-- [ ] Firefox support
+- Harden Contact Builder iframe navigation across more SFMC stacks.
+- Add a visual Journey dependency map.
+- Add a DE health dashboard for null-heavy fields, stale objects, and orphaned DEs.
+- Add broken-link detection for email and CloudPage assets.
+- Export metadata and relationship maps to JSON/CSV.
+- Explore Firefox support.
 
 ---
 
 ## Contributing
 
-PRs welcome. Before starting work on a feature, open an issue to discuss the approach.
+Pull requests are welcome. For larger changes, open an issue first so the approach can be discussed.
 
-**Code standards:**
-- Vanilla JS only (no frameworks in content/background scripts)
-- No `let`/`const`/arrow functions in content scripts (keep IE11-era compat for SFMC's older iframe contexts)
-- All SFMC API calls go through `sfmc-api.js`
+Code standards:
+
+- Vanilla JavaScript only for extension code.
+- No frameworks in content or background scripts.
+- No `let`, `const`, or arrow functions in content scripts, to stay friendly with older SFMC iframe contexts.
+- Shared SFMC API calls should go through `shared/sfmc-api.js`.
+- Keep native navigation fallbacks conservative; SFMC shell and iframe routes can vary by stack.
 
 ---
 
 ## License
 
-MIT — free for everyone, forever.
+MIT.
