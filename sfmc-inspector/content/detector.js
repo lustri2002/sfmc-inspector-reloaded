@@ -1,5 +1,5 @@
 /**
- * SFMC Inspector — Content Script (detector.js)
+ * SFMC Inspector Reloaded — Content Script (detector.js)
  *
  * Runs on mc.s51.exacttarget.com (main SFMC page).
  * Intercepts SSO calls and responds to popup requests.
@@ -9,6 +9,7 @@
   "use strict";
 
   var _context = null;
+  var _lastContextKey = null;
 
   function decodeJwt(t) {
     try {
@@ -26,7 +27,7 @@
     var user = pl.request.user || {};
     if (!rest.refreshToken || !rest.authEndpoint) return;
 
-    _context = {
+    var nextContext = {
       hostname:     window.location.hostname,
       stackKey:     org.stackKey || null,
       restBase:     (rest.apiEndpointBase||"").replace(/\/$/,""),
@@ -36,7 +37,26 @@
       region:       org.region || null,
       userEmail:    user.email || null,
     };
-    console.log("[SFMC Inspector] JWT captured, stack:", _context.stackKey);
+    var nextContextKey = [
+      nextContext.hostname || "",
+      nextContext.stackKey || "",
+      nextContext.orgId || "",
+      nextContext.restBase || ""
+    ].join("|");
+
+    _context = nextContext;
+    console.log("[SFMC Inspector Reloaded] JWT captured, stack:", _context.stackKey);
+
+    if (nextContextKey !== _lastContextKey) {
+      _lastContextKey = nextContextKey;
+      chrome.runtime.sendMessage({
+        type: "SFMC_CONTEXT_CAPTURED",
+        context: _context
+      }, function() {
+        // The service worker may be asleep during early page boot.
+        void chrome.runtime.lastError;
+      });
+    }
   }
 
   // Intercept fetch
@@ -93,8 +113,31 @@
         callback(_context);
       })
       .catch(function(e) {
-        console.log("[SFMC Inspector] SSO probe error:", e.message);
+        console.log("[SFMC Inspector Reloaded] SSO probe error:", e.message);
         callback(_context);
+      });
+  }
+
+  function fetchFuelApi(message, callback) {
+    var url = String(message.fuelBase || "") + String(message.endpoint || "");
+    var opts = {
+      method:      message.method || "GET",
+      credentials: "include",
+      headers:     {}
+    };
+    if (message.body) {
+      opts.headers["Content-Type"] = "application/json";
+      opts.body = JSON.stringify(message.body);
+    }
+
+    _origFetch.call(window, url, opts)
+      .then(function(r) {
+        return r.text().then(function(t) {
+          callback({ ok: true, result: { status: r.status, text: t } });
+        });
+      })
+      .catch(function(e) {
+        callback({ ok: false, error: e.message });
       });
   }
 
@@ -110,6 +153,11 @@
         });
       }
       return true; // async
+    }
+
+    if (msg.type === "SFMC_IN_PAGE_FETCH") {
+      fetchFuelApi(msg, sendResponse);
+      return true;
     }
   });
 
