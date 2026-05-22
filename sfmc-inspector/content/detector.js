@@ -8,6 +8,9 @@
 (function () {
   "use strict";
 
+  if (window.__sfmcInspectorReloadedDetectorLoaded) return;
+  window.__sfmcInspectorReloadedDetectorLoaded = true;
+
   var _context = null;
   var _lastContextKey = null;
 

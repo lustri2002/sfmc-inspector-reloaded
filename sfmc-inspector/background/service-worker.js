@@ -108,6 +108,17 @@ function fetchFuelApiViaContentScript(tab, fuelBase, endpoint, method, body) {
   });
 }
 
+function isMissingContentScriptError(err) {
+  return err && /Receiving end does not exist|Could not establish connection/i.test(err.message || "");
+}
+
+function injectDetectorContentScript(tab) {
+  return chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    files: ["content/detector.js"]
+  });
+}
+
 function fetchFuelApiViaScripting(tab, fuelBase, endpoint, method, body) {
   return chrome.scripting.executeScript({
     target: { tabId: tab.id },
@@ -142,6 +153,15 @@ async function fetchFuelApiInSfmcTab(tab, fuelBase, endpoint, method, body) {
   try {
     return await fetchFuelApiViaContentScript(tab, fuelBase, endpoint, method, body);
   } catch(contentScriptError) {
+    if (isMissingContentScriptError(contentScriptError)) {
+      console.warn("[SFMC Inspector Reloaded SW] Content script missing; injecting detector into SFMC tab.");
+      await injectDetectorContentScript(tab);
+      try {
+        return await fetchFuelApiViaContentScript(tab, fuelBase, endpoint, method, body);
+      } catch(retryError) {
+        console.warn("[SFMC Inspector Reloaded SW] Content-script fetch still failed after injection:", retryError.message);
+      }
+    }
     console.warn("[SFMC Inspector Reloaded SW] Content-script fetch failed, falling back to scripting:", contentScriptError.message);
     return fetchFuelApiViaScripting(tab, fuelBase, endpoint, method, body);
   }
