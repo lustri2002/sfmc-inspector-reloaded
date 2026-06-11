@@ -64,14 +64,25 @@
         <kbd class="search-hint">⌘K</kbd>
       </div>
 
-      <button class="sql-launch-btn" id="btn-open-sql-search">
-        <span class="sql-launch-icon">SQL</span>
-        <span class="sql-launch-copy">
-          <span class="sql-launch-title">Open SQL Search</span>
-          <span class="sql-launch-desc">Runs in a dedicated tab</span>
-        </span>
-        <span class="sql-launch-arrow">↗</span>
-      </button>
+      <div class="tool-launch-grid">
+        <button class="sql-launch-btn" id="btn-open-sql-search">
+          <span class="sql-launch-icon">SQL</span>
+          <span class="sql-launch-copy">
+            <span class="sql-launch-title">Open SQL Search</span>
+            <span class="sql-launch-desc">Find existing Query Activities</span>
+          </span>
+          <span class="sql-launch-arrow">↗</span>
+        </button>
+
+        <button class="sql-launch-btn" id="btn-open-query-editor">
+          <span class="sql-launch-icon">RUN</span>
+          <span class="sql-launch-copy">
+            <span class="sql-launch-title">Open Query Editor</span>
+            <span class="sql-launch-desc">Prototype safe SQL runs</span>
+          </span>
+          <span class="sql-launch-arrow">↗</span>
+        </button>
+      </div>
 
       <nav class="tab-nav" aria-label="Inspector sections">
         <button class="tab-btn active" data-tab="de" title="Data Extensions">

@@ -100,6 +100,7 @@
     // Query Search tab
     queryCount:      $("query-count"),
     btnOpenSqlSearch: $("btn-open-sql-search"),
+    btnOpenQueryEditor: $("btn-open-query-editor"),
     btnOpenSqlSearchLarge: $("btn-open-sql-search-large"),
     btnScanQueries:  $("btn-scan-queries"),
     btnClearQueryIndex: $("btn-clear-query-index"),
@@ -463,6 +464,12 @@
   function openSqlSearchTab() {
     chrome.tabs.create({
       url: chrome.runtime.getURL("sql-search/sql-search.html")
+    });
+  }
+
+  function openQueryEditorTab() {
+    chrome.tabs.create({
+      url: chrome.runtime.getURL("query-editor/query-editor.html")
     });
   }
 
@@ -1658,6 +1665,7 @@
   els.btnScanQueries.addEventListener("click", loadQueryIndex);
   els.btnClearQueryIndex.addEventListener("click", clearQueryIndex);
   els.btnOpenSqlSearch.addEventListener("click", openSqlSearchTab);
+  els.btnOpenQueryEditor.addEventListener("click", openQueryEditorTab);
   els.btnOpenSqlSearchLarge.addEventListener("click", openSqlSearchTab);
   els.querySearchInput.addEventListener("input", function () {
     renderQueryResults(els.querySearchInput.value);

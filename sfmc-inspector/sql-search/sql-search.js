@@ -41,7 +41,19 @@
     results: $("results")
   };
 
-  if (chrome.storage && chrome.storage.local && chrome.storage.local.setAccessLevel) {
+  function hasChromeStorage() {
+    return typeof chrome !== "undefined" && chrome.storage && chrome.storage.local;
+  }
+
+  function hasChromeTabs() {
+    return typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query;
+  }
+
+  function hasChromeRuntime() {
+    return typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage;
+  }
+
+  if (hasChromeStorage() && chrome.storage.local.setAccessLevel) {
     chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }, function () {
       if (chrome.runtime.lastError) {
         console.warn("[SFMC Inspector SQL Search] Could not restrict local storage access:", chrome.runtime.lastError.message);
@@ -187,7 +199,7 @@
 
   function readCache() {
     return new Promise(function (resolve) {
-      if (!chrome.storage || !chrome.storage.local) {
+      if (!hasChromeStorage()) {
         resolve(null);
         return;
       }
@@ -198,7 +210,7 @@
   }
 
   function saveCache() {
-    if (!state.session || !state.session.isValid || !chrome.storage || !chrome.storage.local) return;
+    if (!state.session || !state.session.isValid || !hasChromeStorage()) return;
     var payload = {};
     payload[CACHE_KEY] = {
       version: CACHE_VERSION,
@@ -223,7 +235,7 @@
       state.automationDetailsById = {};
       state.automationMatchesByQueryId = {};
       state.scannedAt = null;
-      if (!chrome.storage || !chrome.storage.local) {
+      if (!hasChromeStorage()) {
         resolve();
         return;
       }
@@ -733,6 +745,12 @@
         restoreCache().then(function (restored) {
           if (!restored) indexAll();
         });
+        return;
+      }
+
+      if (!hasChromeTabs() || !hasChromeRuntime()) {
+        updateSessionUI(null);
+        els.stateMessage.textContent = "Extension runtime is not available in this preview. Load the extension to detect an SFMC session.";
         return;
       }
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SFMC Inspector Query Editor</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="query-editor.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">SI</span>
+      <div>
+        <h1>Query Editor</h1>
+        <p>Prototype safe SFMC SQL runs through Query Activities.</p>
+      </div>
+    </div>
+
+    <div class="session-card">
+      <span id="session-badge" class="badge badge--detecting">
+        <span class="badge-dot"></span>
+        <span id="session-label">Detecting</span>
+      </span>
+      <span id="session-host" class="session-host">—</span>
+    </div>
+  </header>
+
+  <main class="editor-shell">
+    <section class="editor-main">
+      <div class="editor-header">
+        <div>
+          <span class="eyebrow">MVP</span>
+          <h2>SQL Run Lab</h2>
+          <p>Design the query, inspect diagnostics, then build the SFMC execution plan.</p>
+        </div>
+        <span id="editor-readiness" class="badge badge--detecting">Draft</span>
+      </div>
+
+      <label class="field-label" for="editor-sql">SQL</label>
+      <textarea
+        id="editor-sql"
+        class="sql-editor"
+        spellcheck="false"
+        placeholder="SELECT TOP 100 SubscriberKey, EventDate&#10;FROM _Sent WITH (NOLOCK)&#10;ORDER BY EventDate DESC"
+      ></textarea>
+
+      <div class="editor-toolbar">
+        <button id="btn-insert-sample" class="small-btn" type="button">Insert sample</button>
+        <button id="btn-add-top" class="small-btn" type="button">Add TOP 100</button>
+        <button id="btn-clear" class="small-btn" type="button">Clear</button>
+      </div>
+
+      <div id="lint-panel" class="lint-panel"></div>
+    </section>
+
+    <aside class="editor-side">
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Target</span>
+          <span class="muted">Query Activity</span>
+        </div>
+
+        <label class="field-label" for="target-mode">Mode</label>
+        <select id="target-mode" class="form-control">
+          <option value="scratch">Scratch Data Extension</option>
+          <option value="existing">Existing Data Extension</option>
+        </select>
+
+        <label class="field-label" for="target-name">Target name</label>
+        <input id="target-name" class="form-control" type="text" placeholder="SFMC Inspector Preview">
+
+        <label class="field-label" for="target-key">Customer key</label>
+        <input id="target-key" class="form-control" type="text" placeholder="sfmc_inspector_preview">
+
+        <label class="field-label" for="update-type">Write mode</label>
+        <select id="update-type" class="form-control">
+          <option value="overwrite">Overwrite</option>
+          <option value="update">Update</option>
+          <option value="append">Append</option>
+        </select>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Run Plan</span>
+          <span id="plan-state" class="muted">Not built</span>
+        </div>
+        <ol id="run-plan" class="run-plan"></ol>
+        <div class="actions">
+          <button id="btn-build-plan" class="primary-btn" type="button">Build plan</button>
+          <button id="btn-execute" class="small-btn" type="button" disabled>Execute</button>
+        </div>
+      </section>
+    </aside>
+  </main>
+
+  <div id="console" class="console">
+    Paste SQL to see lint diagnostics, inferred output columns and the SFMC API workflow this MVP would run.
+  </div>
+
+  <script src="../shared/sfmc-api.js"></script>
+  <script src="../shared/sql-linter.js"></script>
+  <script src="query-editor.js"></script>
+</body>
+</html>

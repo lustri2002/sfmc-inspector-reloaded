@@ -9,6 +9,10 @@ var SfmcApi = (function () {
 
   function call(endpoint, method, body) {
     return new Promise(function (resolve, reject) {
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+        reject(new Error("Extension runtime is not available."));
+        return;
+      }
       chrome.runtime.sendMessage({
         type:    "SFMC_API_CALL",
         payload: { endpoint: endpoint, method: method || "GET", body: body || null }
@@ -22,6 +26,10 @@ var SfmcApi = (function () {
 
   function getSession() {
     return new Promise(function (resolve) {
+      if (typeof chrome === "undefined" || !chrome.runtime || !chrome.runtime.sendMessage) {
+        resolve({ isValid: false });
+        return;
+      }
       chrome.runtime.sendMessage({ type: "GET_SESSION" }, function (resp) {
         resolve(resp || { isValid: false });
       });
