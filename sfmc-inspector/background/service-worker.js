@@ -1,5 +1,5 @@
 /**
- * SFMC Inspector — Service Worker
+ * SFMC Inspector Reloaded - Service Worker
  *
  * Authentication: SFMC exposes a /cloud/fuelapi/ proxy on the main domain
  * (mc.s51.exacttarget.com) that accepts REST API calls using the browser's
@@ -71,7 +71,7 @@ async function detectSession(hostname) {
   });
 
   var result = results && results[0] && results[0].result;
-  console.log("[SFMC Inspector SW] Probe result:", JSON.stringify(result).substring(0, 200));
+  console.log("[SFMC Inspector Reloaded SW] Probe result:", JSON.stringify(result).substring(0, 200));
 
   if (!result || result.error) {
     throw new Error("Could not probe SFMC session: " + (result && result.error));
@@ -87,7 +87,7 @@ async function detectSession(hostname) {
   session.isValid        = result.status === 200;
 
   chrome.storage.session.set({ sfmcSession: session });
-  console.log("[SFMC Inspector SW] Session established:", JSON.stringify(getSessionStatus()));
+  console.log("[SFMC Inspector Reloaded SW] Session established:", JSON.stringify(getSessionStatus()));
 
   return getSessionStatus();
 }
@@ -175,6 +175,7 @@ function getNativeNavigationConfig(payload) {
   if (payload.objectType === "dataExtension") {
     return {
       shellUrl: fallbackUrl || ("https://" + host + "/cloud/#app/Contact%20Builder"),
+      usesFrameNavigation: true,
       frameNeedles: ["contactsmeta/admin.html"],
       targetPath: "/contactsmeta/admin.html#admin/data-extension/" + encodeURIComponent(objectId) + "/properties/",
       notFoundMessage: "Ho aperto Contact Builder, ma non ho trovato l'iframe contactsmeta da pilotare."

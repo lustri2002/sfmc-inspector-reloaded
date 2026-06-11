@@ -8,6 +8,7 @@
   --sf-blue: #0176d3;
   --sf-blue-dark: #032d60;
   --sf-blue-soft: #eef6ff;
+  --icon-muted: #5f7f9f;
   --mc-orange: #ff7a00;
   --mc-orange-soft: #fff3e6;
 
@@ -24,7 +25,7 @@
   --text-soft: #8190a3;
 
   --green: #2e844a;
-  --green-soft: #e4f7ec;
+  --green-soft: #f4fbf7;
   --yellow: #9f6400;
   --yellow-soft: #fff4dc;
   --red: #ba0517;
@@ -71,7 +72,7 @@ input:disabled {
 
 button:focus-visible,
 input:focus-visible {
-  outline: 2px solid rgba(255, 122, 0, 0.42);
+  outline: 2px solid rgba(1, 118, 211, 0.28);
   outline-offset: 2px;
 }
 
@@ -79,18 +80,12 @@ input:focus-visible {
   height: 70px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
+  gap: 24px;
   padding: 0 22px;
   border-top: 3px solid var(--mc-orange);
   border-bottom: 1px solid var(--border);
   background: var(--bg-surface);
-}
-
-.topbar-main {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 24px;
 }
 
 .brand {
@@ -107,11 +102,15 @@ input:focus-visible {
   align-items: center;
   justify-content: center;
   border-radius: var(--radius-md);
-  background: var(--sf-blue);
-  color: #ffffff;
-  font-family: var(--mono);
-  font-size: 11px;
-  font-weight: 700;
+  background: var(--sf-blue-soft);
+  color: var(--icon-muted);
+}
+
+.brand-mark img {
+  width: 18px;
+  height: 18px;
+  display: block;
+  object-fit: contain;
 }
 
 h1 {
@@ -266,7 +265,7 @@ h1 {
   width: 0%;
   height: 100%;
   border-radius: inherit;
-  background: var(--mc-orange);
+  background: var(--icon-muted);
   transition: width 160ms ease;
 }
 
@@ -346,7 +345,7 @@ h1 {
 }
 
 .check-row:hover input {
-  border-color: var(--mc-orange);
+  border-color: var(--sf-blue);
 }
 
 .check-row input {
@@ -369,15 +368,15 @@ h1 {
   width: 8px;
   height: 8px;
   border-radius: 2px;
-  background: var(--mc-orange);
+  background: var(--icon-muted);
   opacity: 0;
   transform: scale(0.65);
   transition: opacity 120ms ease, transform 120ms ease;
 }
 
 .check-row input:checked {
-  border-color: var(--mc-orange);
-  background: var(--mc-orange-soft);
+  border-color: var(--sf-blue);
+  background: var(--sf-blue-soft);
 }
 
 .check-row input:checked::before {
@@ -386,7 +385,7 @@ h1 {
 }
 
 .check-row input:focus-visible {
-  outline: 2px solid rgba(255, 122, 0, 0.42);
+  outline: 2px solid rgba(1, 118, 211, 0.28);
   outline-offset: 2px;
 }
 
@@ -445,9 +444,9 @@ h1 {
 .state-message {
   padding: 12px 18px;
   border-bottom: 1px solid var(--border);
-  border-left: 3px solid var(--mc-orange);
+  border-left: 3px solid var(--icon-muted);
   color: var(--text-muted);
-  background: var(--mc-orange-soft);
+  background: var(--sf-blue-soft);
   font-size: 12px;
 }
 
@@ -586,7 +585,7 @@ h1 {
 
 .hl {
   color: var(--sf-blue-dark);
-  background: rgba(255, 122, 0, 0.15);
+  background: var(--sf-blue-soft);
   border-radius: 2px;
   font-weight: 700;
 }

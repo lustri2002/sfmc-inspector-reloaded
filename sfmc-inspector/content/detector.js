@@ -1,5 +1,5 @@
 /**
- * SFMC Inspector — Content Script (detector.js)
+ * SFMC Inspector Reloaded - Content Script (detector.js)
  *
  * Runs on mc.s51.exacttarget.com (main SFMC page).
  * Intercepts SSO calls and responds to popup requests.
@@ -9,6 +9,7 @@
   "use strict";
 
   var _context = null;
+  var _lastOrganizationDebug = "";
 
   function decodeJwt(t) {
     try {
@@ -26,6 +27,12 @@
     var user = pl.request.user || {};
     if (!rest.refreshToken || !rest.authEndpoint) return;
 
+    var organizationDebugKey = JSON.stringify(org);
+    if (organizationDebugKey !== _lastOrganizationDebug) {
+      _lastOrganizationDebug = organizationDebugKey;
+      console.log("[SFMC Inspector Reloaded Debug] pl.request.organization:", org);
+    }
+
     _context = {
       hostname:     window.location.hostname,
       stackKey:     org.stackKey || null,
@@ -35,8 +42,9 @@
       orgId:        org.id || null,
       region:       org.region || null,
       userEmail:    user.email || null,
+      organization: org,
     };
-    console.log("[SFMC Inspector] JWT captured, stack:", _context.stackKey);
+    console.log("[SFMC Inspector Reloaded] JWT captured, stack:", _context.stackKey);
   }
 
   // Intercept fetch
@@ -93,7 +101,7 @@
         callback(_context);
       })
       .catch(function(e) {
-        console.log("[SFMC Inspector] SSO probe error:", e.message);
+        console.log("[SFMC Inspector Reloaded] SSO probe error:", e.message);
         callback(_context);
       });
   }

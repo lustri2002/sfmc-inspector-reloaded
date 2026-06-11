@@ -1,5 +1,5 @@
 /**
- * SFMC Inspector - SQL Search dedicated page.
+ * SFMC Inspector Reloaded - SQL Search dedicated page.
  * Long-running Query Activity indexing belongs here instead of the popup.
  */
 
@@ -33,6 +33,8 @@
     progressLabel: $("progress-label"),
     btnRescan: $("btn-rescan"),
     btnClear: $("btn-clear"),
+    btnOpenMetadata: $("btn-open-metadata"),
+    btnOpenQueryEditor: $("btn-open-query-editor"),
     searchInput: $("search-input"),
     scopeFilters: Array.prototype.slice.call(document.querySelectorAll(".scope-filter")),
     onlyUsedFilter: $("only-used-filter"),
@@ -41,10 +43,30 @@
     results: $("results")
   };
 
-  if (chrome.storage && chrome.storage.local && chrome.storage.local.setAccessLevel) {
+  if (window.FeatureFlags) FeatureFlags.applyVisibility(document);
+
+  function hasChromeStorage() {
+    return typeof chrome !== "undefined" && chrome.storage && chrome.storage.local;
+  }
+
+  function hasChromeTabs() {
+    return typeof chrome !== "undefined" && chrome.tabs && chrome.tabs.query;
+  }
+
+  function hasChromeRuntime() {
+    return typeof chrome !== "undefined" && chrome.runtime && chrome.runtime.sendMessage;
+  }
+
+  function openExtensionPage(path) {
+    if (window.FeatureFlags && !FeatureFlags.canOpenPath(path)) return;
+    if (!hasChromeRuntime() || !chrome.tabs || !chrome.tabs.create) return;
+    chrome.tabs.create({ url: chrome.runtime.getURL(path) });
+  }
+
+  if (hasChromeStorage() && chrome.storage.local.setAccessLevel) {
     chrome.storage.local.setAccessLevel({ accessLevel: "TRUSTED_CONTEXTS" }, function () {
       if (chrome.runtime.lastError) {
-        console.warn("[SFMC Inspector SQL Search] Could not restrict local storage access:", chrome.runtime.lastError.message);
+        console.warn("[SFMC Inspector Reloaded SQL Search] Could not restrict local storage access:", chrome.runtime.lastError.message);
       }
     });
   }
@@ -187,7 +209,7 @@
 
   function readCache() {
     return new Promise(function (resolve) {
-      if (!chrome.storage || !chrome.storage.local) {
+      if (!hasChromeStorage()) {
         resolve(null);
         return;
       }
@@ -198,7 +220,7 @@
   }
 
   function saveCache() {
-    if (!state.session || !state.session.isValid || !chrome.storage || !chrome.storage.local) return;
+    if (!state.session || !state.session.isValid || !hasChromeStorage()) return;
     var payload = {};
     payload[CACHE_KEY] = {
       version: CACHE_VERSION,
@@ -211,7 +233,7 @@
     };
     chrome.storage.local.set(payload, function () {
       if (chrome.runtime.lastError) {
-        console.warn("[SFMC Inspector SQL Search] Could not save cache:", chrome.runtime.lastError.message);
+        console.warn("[SFMC Inspector Reloaded SQL Search] Could not save cache:", chrome.runtime.lastError.message);
       }
     });
   }
@@ -223,7 +245,7 @@
       state.automationDetailsById = {};
       state.automationMatchesByQueryId = {};
       state.scannedAt = null;
-      if (!chrome.storage || !chrome.storage.local) {
+      if (!hasChromeStorage()) {
         resolve();
         return;
       }
@@ -736,6 +758,12 @@
         return;
       }
 
+      if (!hasChromeTabs() || !hasChromeRuntime()) {
+        updateSessionUI(null);
+        els.stateMessage.textContent = "Extension runtime is not available in this preview. Load the extension to detect an SFMC session.";
+        return;
+      }
+
       chrome.tabs.query({}, function (allTabs) {
         var sfmcTab = null;
         for (var i = 0; i < allTabs.length; i++) {
@@ -792,6 +820,14 @@
       updateSummary();
       renderResults();
     });
+  });
+
+  els.btnOpenMetadata.addEventListener("click", function () {
+    openExtensionPage("metadata-explorer/metadata-explorer.html");
+  });
+
+  els.btnOpenQueryEditor.addEventListener("click", function () {
+    openExtensionPage("query-editor/query-editor.html");
   });
 
   els.searchInput.addEventListener("input", renderResults);

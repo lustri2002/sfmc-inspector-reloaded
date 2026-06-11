@@ -3,26 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SFMC Inspector SQL Search</title>
+  <title>SFMC Inspector Reloaded SQL Search</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/ui.css">
   <link rel="stylesheet" href="sql-search.css">
 </head>
 <body>
   <header class="topbar">
-    <div class="topbar-main">
-      <div class="brand">
-        <span class="brand-mark">SI</span>
-        <div>
-          <h1>SQL Search</h1>
-          <p>Query Activities and automation usage.</p>
-        </div>
+    <div class="brand">
+      <span class="brand-mark ui-icon-box"><img src="../assets/icons/ModulesIcons/SQLSearch.svg" alt="" aria-hidden="true"></span>
+      <div>
+        <h1>SQL Search</h1>
+        <p>Query Activities and automation usage.</p>
       </div>
-      <div class="session-card">
-        <span id="session-badge" class="badge badge--detecting"><span class="badge-dot"></span><span id="session-label">Detecting</span></span>
-        <span id="session-host" class="session-host">—</span>
-      </div>
+    </div>
+    <div class="session-card">
+      <span id="session-badge" class="badge badge--detecting"><span class="badge-dot"></span><span id="session-label">Detecting</span></span>
+      <span id="session-host" class="session-host">—</span>
     </div>
   </header>
 
@@ -86,6 +85,14 @@
           <span>Only queries used by automations</span>
         </label>
       </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Tools</span>
+        </div>
+        <button id="btn-open-metadata" class="tool-link" type="button"><img src="../assets/icons/ModulesIcons/MetadataExplorer.svg" alt="" aria-hidden="true"> Metadata Explorer ↗</button>
+        <button id="btn-open-query-editor" class="tool-link" type="button" data-feature="queryEditor"><img src="../assets/icons/ModulesIcons/QueryEditor.svg" alt="" aria-hidden="true"> Query Editor ↗</button>
+      </section>
     </aside>
 
     <section class="workspace">
@@ -101,16 +108,12 @@
           disabled
         >
       </div>
-
-      <div id="state-message" class="state-message">
-        Keep an SFMC tab open. Indexing starts automatically when the session is ready.
-      </div>
-
       <div id="results" class="results"></div>
     </section>
   </main>
 
   <script src="../shared/sfmc-api.js"></script>
+  <script src="../shared/feature-flags.js"></script>
   <script src="sql-search.js"></script>
 </body>
 </html>

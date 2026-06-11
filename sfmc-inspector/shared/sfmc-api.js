@@ -1,5 +1,5 @@
 /**
- * SFMC Inspector — sfmc-api.js
+ * SFMC Inspector Reloaded - sfmc-api.js
  * All endpoints use the /cloud/fuelapi/ proxy on mc.s51.exacttarget.com
  * which accepts calls with session cookies — no Bearer token needed.
  * Endpoint patterns discovered from SFMC Companion (v0.4.2, Cameron Robert).
@@ -44,7 +44,7 @@ var SfmcApi = (function () {
       }).catch(function() { return []; }).then(function(items) {
         completed++;
         items.forEach(function(de) {
-          var key = de.customerKey || de.key || de.objectId || de.name;
+          var key = de.customerKey || de.CustomerKey || de.key || de.externalKey || de.objectId || de.ObjectID || de.dataExtensionId || de.DataExtensionID || de.name || de.Name;
           if (key && !seenProgress[key]) {
             seenProgress[key] = true;
             uniqueCount++;
@@ -59,7 +59,7 @@ var SfmcApi = (function () {
       var all  = [];
       results.forEach(function(items) {
         items.forEach(function(de) {
-          var key = de.customerKey || de.key || de.objectId || de.name;
+          var key = de.customerKey || de.CustomerKey || de.key || de.externalKey || de.objectId || de.ObjectID || de.dataExtensionId || de.DataExtensionID || de.name || de.Name;
           if (key && !seen[key]) {
             seen[key] = true;
             all.push(de);

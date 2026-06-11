@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SFMC Inspector Reloaded Metadata Explorer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Geist:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../shared/ui.css">
+  <link rel="stylesheet" href="metadata-explorer.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark ui-icon-box"><img src="../assets/icons/ModulesIcons/MetadataExplorer.svg" alt="" aria-hidden="true"></span>
+      <div>
+        <h1>Metadata Explorer</h1>
+        <p>Data Extensions, Automations and Journeys.</p>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="session-card">
+        <span id="session-badge" class="badge badge--detecting"><span class="badge-dot"></span><span id="session-label">Detecting</span></span>
+        <span id="session-host" class="session-host">-</span>
+      </div>
+      <button id="btn-refresh" class="small-btn">Refresh</button>
+    </div>
+  </header>
+
+  <main class="shell">
+    <aside class="sidebar">
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Metadata</span>
+          <span id="cache-label" class="muted">Checking cache</span>
+        </div>
+        <button class="nav-item active" data-type="dataExtension">
+          <span class="nav-icon"><img src="../assets/icons/MetadataIcons/DataExtension.svg" alt="" aria-hidden="true"></span>
+          <span>Data Extensions</span>
+          <strong id="de-count">-</strong>
+        </button>
+        <button class="nav-item" data-type="automation">
+          <span class="nav-icon"><img src="../assets/icons/MetadataIcons/Automation.svg" alt="" aria-hidden="true"></span>
+          <span>Automations</span>
+          <strong id="automation-count">-</strong>
+        </button>
+        <button class="nav-item" data-type="journey">
+          <span class="nav-icon"><img src="../assets/icons/MetadataIcons/Journey.svg" alt="" aria-hidden="true"></span>
+          <span>Journeys</span>
+          <strong id="journey-count">-</strong>
+        </button>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Load Status</span>
+          <span id="load-status" class="muted">Idle</span>
+        </div>
+        <div class="progress-track"><div id="progress-bar" class="progress-bar"></div></div>
+        <div id="progress-label" class="progress-label">Waiting for metadata.</div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <span class="panel-title">Tools</span>
+        </div>
+        <button id="btn-open-sql-search" class="tool-link" type="button"><img src="../assets/icons/ModulesIcons/SQLSearch.svg" alt="" aria-hidden="true"> SQL Search ↗</button>
+        <button id="btn-open-query-editor" class="tool-link" type="button" data-feature="queryEditor"><img src="../assets/icons/ModulesIcons/QueryEditor.svg" alt="" aria-hidden="true"> Query Editor ↗</button>
+      </section>
+    </aside>
+
+    <section class="results-pane">
+      <div class="search-panel">
+        <div class="search-wrap">
+          <span class="search-icon">⌕</span>
+          <input id="search-input" class="search-input" type="text" placeholder="Search selected metadata..." spellcheck="false" autocomplete="off" disabled>
+        </div>
+        <div class="result-meta">
+          <span id="section-title">Data Extensions</span>
+          <span id="result-count">-</span>
+        </div>
+      </div>
+      <div id="results" class="results"></div>
+    </section>
+
+    <section class="detail-pane">
+      <div id="detail-empty" class="detail-empty">
+        <div class="empty-icon">⌕</div>
+        <h2>Select metadata</h2>
+        <p>Pick a Data Extension, Automation or Journey to inspect properties and relationships.</p>
+      </div>
+      <div id="detail-content" class="detail-content hidden"></div>
+    </section>
+  </main>
+
+  <script src="../shared/sfmc-api.js"></script>
+  <script src="../shared/feature-flags.js"></script>
+  <script src="../shared/metadata-store.js"></script>
+  <script src="metadata-explorer.js"></script>
+</body>
+</html>
